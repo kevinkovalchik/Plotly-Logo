@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='Plotly-Logo',
+    name='PlotlyLogo',
     version='',
-    packages=['Plotly-Logo'],
+    packages=['PlotlyLogo'],
     url='https://github.com/kevinkovalchik/Plotly-Logo',
     license='',
     author='Kevin Kovalchik',

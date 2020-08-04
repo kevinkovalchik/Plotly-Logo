@@ -257,7 +257,7 @@ class Logo:
     Constructor for amino acid sequence motifs. Intended to work with GibbsCluster output, but should be adaptable to
     any sequence alignment.
     """
-    def __init__(self, n_positions: int, width: int, height: int, legend=False, blosum=str(pathlib.Path(ROOT_DIR)/'Blosum62.txt')):
+    def __init__(self, alignment_file: str, blosum=str(pathlib.Path(ROOT_DIR)/'Blosum62.txt')):
         self.b64 = pd.read_table(blosum, sep=' ', index_col=0)  # str(Path(ROOT_DIR)/'Blosum62.txt'), sep=' ')
         self.b64_dict = {}
         for i in self.b64.index:
@@ -265,11 +265,10 @@ class Logo:
             for j in self.b64.columns:
                 self.b64_dict[i][j] = self.b64.loc[i, j]
         self.fig: go.Figure = None
-        self.initialize_figure(width=width, height=height, legend=legend, n_positions=n_positions)
+        self.n_positions: int = 0
         self.glyphs = []
         self.paths = {}
         self.cores = None
-        self.counts = None
         #self.graph: ig.Graph = None
         self.clusters = None
         self.weights: np.array = None
@@ -279,30 +278,25 @@ class Logo:
                                          0.0492775, 0.0722465, 0.0574747, 0.0125173, 0.0319968, 0.0652477])
         self.aas = np.array(['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I',
                              'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V'])
-        self.n_positions = n_positions
         self.matrix = None
-        self.n_aas = {}
+        self.counts = {}
+        self.load_sequences(alignment_file)
+        self.initialize_figure()
 
-    def initialize_figure(self, width, height, legend, n_positions):
+    def initialize_figure(self):
         self.fig = go.Figure()
         self.fig.layout.template = 'plotly_white'
-        self.fig.layout.width = width
-        self.fig.layout.height = height
         self.fig.layout.margin = dict(l=30, r=30, t=30, b=30)
         self.fig.layout.yaxis.range = [0, 2]
-        self.fig.layout.xaxis.range = [0.5, n_positions + 0.5]
+        self.fig.layout.xaxis.range = [0.5, self.n_positions + 0.5]
         self.fig.layout.xaxis.showgrid = False
         self.fig.layout.xaxis.dtick = 1
         self.fig.layout.xaxis.showline = True
+        self.fig.layout.xaxis.title = 'Position'
         self.fig.layout.yaxis.showline = True
+        self.fig.layout.yaxis.title = 'Information content (bits)'
         self.fig.layout.xaxis.linecolor = 'black'
         self.fig.layout.yaxis.linecolor = 'black'
-        if legend:
-            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#21d426', name='Polar'))
-            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d41cbf', name='Neutral'))
-            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#0517bd', name='Basic'))
-            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d40a14', name='Acidic'))
-            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#000000', name='Hydrophobic'))
 
     def add_glyph(self, letter: str, left: float, right: float, top: float, bottom: float):
         """
@@ -322,24 +316,6 @@ class Logo:
         else:
             self.paths[color(letter)] = path.path_string()
 
-        """
-        self.glyphs.append(dict
-            (
-            type='path',
-            path=path.path_string(),
-            yref='y',
-            xref='paper',
-            ysizemode='scaled',
-            fillcolor=PLogos.color(letter),
-            line_color=PLogos.color(letter),
-            # fillcolor=PLogos.dms_colors[letter],
-            # line_color=PLogos.dms_colors[letter],
-            opacity=0.9,
-            line_width=1
-            # transform="translate(30) rotate(45 50 50)"
-        ))
-        """
-
     def update_figure(self):
 
         glyphs = []
@@ -357,7 +333,17 @@ class Logo:
             ))
         self.fig.layout.shapes = glyphs
 
-    def plot(self):
+    def plot(self, width=None, height=None, legend=False):
+        if width:
+            self.fig.layout.width = width
+        if height:
+            self.fig.layout.height = height
+        if legend:
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#21d426', name='Polar'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d41cbf', name='Neutral'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#0517bd', name='Basic'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d40a14', name='Acidic'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#000000', name='Hydrophobic'))
         self.fig.show()
 
     def load_sequences(self, file: str):
@@ -370,6 +356,7 @@ class Logo:
         with open(file, 'r') as f:
             lines = f.readlines()
             cores = [x.strip() for x in lines[1:]]
+        self.n_positions = len(cores[0])
         self.cores = np.array(cores)
         self.cores.sort()
 
@@ -396,11 +383,7 @@ class Logo:
     '''
 
     def cluster(self):
-        cluster_id = 0
-        clusters = []
-        clusters.append([self.cores[0]])
-        cluster_id += 1
-
+        clusters = [[self.cores[0]]]
         for i in self.cores[1:]:
             similar_found = False
             for c in clusters:
@@ -424,6 +407,7 @@ class Logo:
             self.weights[i] = weighting[self.cores[i]]
         self.clusters = clusters
 
+    '''
     def do_weighting(self):
         components = self.graph.components()
         weighting = {}
@@ -435,28 +419,28 @@ class Logo:
         for i in range(len(self.cores)):
             self.weights[i] = weighting[self.cores[i]]
         self.clusters = components
+    '''
 
     def do_counts(self, clustering=True):
         self.frequency = np.zeros((self.n_positions, 20))
         core_array = np.array([list(x) for x in self.cores])
         if not clustering:
             for aa in self.aas:
-                self.n_aas[aa] = {}
+                self.counts[aa] = {}
                 for i in range(self.n_positions):
-                    self.n_aas[aa][i] = np.sum(core_array[:, i] == aa)
+                    self.counts[aa][i] = np.sum(core_array[:, i] == aa)
         else:
             for aa in self.aas:
-                self.n_aas[aa] = {}
+                self.counts[aa] = {}
                 for i in range(self.n_positions):
-                    self.n_aas[aa][i] = np.sum(self.weights[core_array[:, i] == aa])
+                    self.counts[aa][i] = np.sum(self.weights[core_array[:, i] == aa])
 
         for i in range(self.n_positions):
             for j in range(20):
-                self.frequency[i, j] = self.n_aas[self.aas[j]][i]
+                self.frequency[i, j] = self.counts[self.aas[j]][i]
         self.frequency = self.frequency / np.sum(self.frequency, axis=1)[np.newaxis].T
 
     def weighted_pseudo_count_corrected_frequency(self, weight_on_prior: int = 200):
-        final_frequency = np.zeros((self.n_positions, 20))
         alpha = len(self.clusters) - 1
         beta = weight_on_prior
         pseudo_counts = np.dot(self.frequency, self.b64.values)
@@ -485,13 +469,12 @@ class Logo:
             df = pd.DataFrame(index=range(self.n_positions), columns=list(self.aas), data=IC)
             self.matrix = df
 
-    def gen_logo(self):
+    def gen_logo(self, fig_width=None, fig_height=None, legend=False, plot=True, return_fig=False):
         positions = len(self.matrix)
         max_score = 0
         min_score = 0
         x = 0
         width = 1 / positions
-        rando = np.random.normal()
         for idx in self.matrix.index:
             t = self.matrix.loc[idx, :]
             t = t.sort_values()
@@ -512,11 +495,44 @@ class Logo:
                     min_score = score
             x = x + width
         self.fig.layout.yaxis.range = [min_score, max_score]
+        if fig_width:
+            self.fig.layout.width = fig_width
+        if fig_height:
+            self.fig.layout.height = fig_height
+        if legend:
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#21d426', name='Polar'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d41cbf', name='Neutral'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#0517bd', name='Basic'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#d40a14', name='Acidic'))
+            self.fig.add_trace(go.Bar(x=[0], y=[0], marker_color='#000000', name='Hydrophobic'))
         self.update_figure()
-        self.plot()
+        if plot:
+            self.plot()
+        if return_fig:
+            return self.fig
 
     def logo_to_image(self, img_format: str = 'png'):
         return self.fig.to_image(format=img_format, width=640, height=640, scale=1)
 
     def logo_write_image(self, path: str):
         return self.fig.write_image(path, width=640, height=640)
+
+
+def logo_from_alignment(alignment_file: str,
+                        clustering: bool = True,
+                        motif_type: str = "Kullback-Leibler",
+                        width: int = None,
+                        height: int = None,
+                        legend: bool = False,
+                        plot: bool = True,
+                        return_fig: bool = False):
+
+    logo = Logo(alignment_file)
+    if clustering:
+        logo.cluster()
+    logo.do_counts(clustering=clustering)
+    logo.weighted_pseudo_count_corrected_frequency(weight_on_prior=200)
+    logo.calculate_matrix(motif_type)
+    logo = logo.gen_logo(plot=plot, return_fig=return_fig, fig_width=width, fig_height=height, legend=legend)
+    if return_fig:
+        return logo

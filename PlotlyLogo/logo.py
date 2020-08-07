@@ -286,15 +286,18 @@ class Logo:
     def initialize_figure(self):
         self.fig = go.Figure()
         self.fig.layout.template = 'plotly_white'
-        self.fig.layout.margin = dict(l=30, r=30, t=30, b=30)
+        self.fig.layout.margin = dict(l=0, r=0, t=0, b=0)
+        self.fig.update_layout(font_color='#212529')
         self.fig.layout.yaxis.range = [0, 2]
         self.fig.layout.xaxis.range = [0.5, self.n_positions + 0.5]
         self.fig.layout.xaxis.showgrid = False
         self.fig.layout.xaxis.dtick = 1
         self.fig.layout.xaxis.showline = True
         self.fig.layout.xaxis.title = 'Position'
+        self.fig.layout.xaxis.title.standoff = 5
+        self.fig.layout.yaxis.title.standoff = 5
         self.fig.layout.yaxis.showline = True
-        self.fig.layout.yaxis.title = 'Information content (bits)'
+        self.fig.layout.yaxis.title = 'Bits'
         self.fig.layout.xaxis.linecolor = 'black'
         self.fig.layout.yaxis.linecolor = 'black'
 
@@ -533,6 +536,6 @@ def logo_from_alignment(alignment_file: str,
     logo.do_counts(clustering=clustering)
     logo.weighted_pseudo_count_corrected_frequency(weight_on_prior=200)
     logo.calculate_matrix(motif_type)
-    logo = logo.gen_logo(plot=plot, return_fig=return_fig, fig_width=width, fig_height=height, legend=legend)
+    fig = logo.gen_logo(plot=plot, return_fig=return_fig, fig_width=width, fig_height=height, legend=legend)
     if return_fig:
-        return logo
+        return fig, logo.frequency

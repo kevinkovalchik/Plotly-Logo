@@ -3,7 +3,7 @@ from typing import List, Union
 import numpy as np
 import pandas as pd
 #import igraph as ig
-import Levenshtein
+#import Levenshtein
 import os
 import pathlib
 from random import uniform as r_uniform
@@ -252,6 +252,15 @@ def color(aa):
             return color
 
 
+def levenshtein_similarity(a: str, b: str):
+    length = len(a)
+    if length != len(b) or type(a) != type(b) or not isinstance(a, (str, np.ndarray)):
+        raise ValueError('a and b must be equal length strings or character arrays.')
+    if isinstance(a, str):
+        return np.sum(np.array(list(a)) == np.array(list(b))) / length
+    else:
+        return np.sum(a == b) / length
+
 class Logo:
     """
     Constructor for amino acid sequence motifs. Intended to work with GibbsCluster output, but should be adaptable to
@@ -391,7 +400,7 @@ class Logo:
             similar_found = False
             for c in clusters:
                 for s in c:
-                    similarity = (9 - Levenshtein.distance(i, s))/9
+                    similarity = levenshtein_similarity(i, s)
                     if similarity > 0.63:
                         similar_found = True
                         break

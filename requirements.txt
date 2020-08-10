@@ -1,5 +1,5 @@
 plotly
 numpy
 pandas
-psutil
-python-Levenshtein
+#psutil
+#python-Levenshtein

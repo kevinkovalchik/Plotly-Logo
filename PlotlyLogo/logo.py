@@ -309,6 +309,7 @@ class Logo:
         self.fig.layout.yaxis.title = 'Bits'
         self.fig.layout.xaxis.linecolor = 'black'
         self.fig.layout.yaxis.linecolor = 'black'
+        self.fig.update_xaxes(fixedrange=True)
 
     def add_glyph(self, letter: str, left: float, right: float, top: float, bottom: float):
         """

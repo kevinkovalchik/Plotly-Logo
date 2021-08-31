@@ -10,7 +10,7 @@ setup(
     author_email='',
     description='A Python library for making amino acid sequence logos using the Plotly framework.',
     python_requires='>=3.7',
-    install_requires=['numpy', 'plotly>=1.12.0', 'pandas', 'tqdm'],
+    install_requires=['numpy', 'plotly>=1.12.0', 'pandas'],
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
